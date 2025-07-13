@@ -25,6 +25,4 @@ Este script automatiza o minigame de pesca, detectando áreas coloridas na tela 
 - O script mostra tooltips na tela com informações de runtime, quantidade de peixes pescados, status e localização da barra.
 - Para melhores resultados, use o jogo em modo janela e não altere a resolução durante o uso.
 
-## Aviso
-
-Este projeto é apenas para fins educacionais. O uso de macros pode violar os termos de serviço de alguns jogos. Use por sua conta e risco.
+kkkvsfvuctor
