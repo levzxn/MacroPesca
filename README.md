@@ -1,6 +1,6 @@
-# macroPescaMush
+# MacroPesca
 
-Automação de pesca para jogos usando AutoHotkey.
+Automação de pesca usando AutoHotkey.
 
 Este script automatiza o minigame de pesca, detectando áreas coloridas na tela e realizando cliques automaticamente para maximizar a eficiência da pesca.
 
@@ -13,7 +13,7 @@ Este script automatiza o minigame de pesca, detectando áreas coloridas na tela 
 
 1. Instale o [AutoHotkey](https://www.autohotkey.com/).
 2. Baixe ou clone este repositório.
-3. Execute o arquivo `v1.ahk1` que está na pasta `v1.0` (basta dar dois cliques no arquivo ou clicar com o botão direito e escolher "Run Script").
+3. Execute o arquivo `v1.ahk` que está na pasta `v1.0` (basta dar dois cliques no arquivo ou clicar com o botão direito e escolher "Run Script").
 
 ## Keybinds
 
