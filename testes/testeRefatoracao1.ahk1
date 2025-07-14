@@ -3,19 +3,18 @@ CoordMode, Pixel, Screen
 CoordMode, Mouse, Screen
 CoordMode, ToolTip, Screen
 
-
 ; Variaveis de controle
 
 runtimeS := 0
 runtimeM := 0
 runtimeH := 0
 pescados := 0
+ultimoClique := 0
 greenTop    := ""
 greenBottom := ""
 barraTop    := ""
 barraBottom := ""
 linhaY      := ""
-
 
 ; Variáveis de cor e calculo de tela
 
@@ -27,9 +26,10 @@ tolerance := 20
 x := Round(A_ScreenWidth / 1.859)
 yStart := Round(A_ScreenHeight / 3.2)
 yEnd := Round(A_ScreenHeight / 1.92)
+barraDetectada := false
+global barraDetectadaAnterior := false
 
 ; Funções de controle de script
-
 
 scanAtivo := false
 SetTimer, UpdateTooltips, 1000
@@ -37,10 +37,15 @@ SetTimer, UpdateTooltips, 1000
 F5::
     scanAtivo := !scanAtivo
     if (scanAtivo) {
-        SetTimer, Scan, 50
+        Click
+        SetTimer, Scan, 10
+        SetTimer, Core, 50
+        SetTimer, DetectaFimMinigame, 40
         ToolTip, Scan ATIVO, 10, 10, 5
     } else {
         SetTimer, Scan, Off
+        SetTimer, Core, Off
+        SetTimer, DetectaFimMinigame, Off
         ToolTip
     }
 return
@@ -49,107 +54,145 @@ F6::
 ExitApp
 return
 
+; Função de detecção de área verde e barra
+Core:
+    {
+        if (greenBottom != "" or greenTop != ""){
+            barradetectada := true
+        }
+        else {
+            barradetectada := false
+        }
+        if (barradetectada) {
+            Gosub, clique
+        }
+        return
+    }
 
 ; Função de atualização de tooltips
-
 UpdateTooltips:
-    runtimeS++
-    if (runtimeS >= 60) {
-        runtimeS := 0
-        runtimeM++
+    {
+        if (scanAtivo) {
+            runtimeS++
+        }
+        if (runtimeS >= 60) {
+            runtimeS := 0
+            runtimeM++
+        }
+        if (runtimeM >= 60) {
+            runtimeM := 0
+            runtimeH++
+        }
+        Gosub, LocalizacaoSearcher
+        Gosub, StatusDePesca
+        ToolTip, Tempo jogado: %runtimeH%h %runtimeM%m %runtimeS%s, 20, 50, 1
+        ToolTip, Pescados: %pescados%,                              20, 80, 2
+        ToolTip, Status: %status%,                                  20, 110, 3
+        Tooltip, Localizacao: %localizacao%,                        20, 140, 4
+        return
     }
-    if (runtimeM >= 60) {
-        runtimeM := 0
-        runtimeH++
-    }
-    ToolTip, Tempo jogado: %runtimeH%h %runtimeM%m %runtimeS%s, 20, 50, 1
-    ToolTip, Pescados: %pescados%,                              20, 80, 2
-    ToolTip, Status: %status%,                                  20, 110, 3
-    Tooltip, Localizacao: %localizacao%,                        20, 140, 4
-    return
 
-
-; Função de Pixelsearcher
+; Função de detecção de pixel
 
 Scan:
     {
-    ; Detecta a área verde
-    PixelSearch, , greenTop, %x%, %yStart%, %x%, %yEnd%, %greenColor%, %tolerance%, Fast RGB
-    PixelSearch, , greenBottom, %x%, %yEnd%, %x%, %yStart%, %greenColor%, %tolerance%, Fast RGB
+        ; Detecta a área verde
+        PixelSearch, , greenTop, %x%, %yStart%, %x%, %yEnd%, %greenColor%, %tolerance%, Fast RGB
+        PixelSearch, , greenBottom, %x%, %yEnd%, %x%, %yStart%, %greenColor%, %tolerance%, Fast RGB
 
-    ; Detecta a area da barra
-    PixelSearch, , barraTop, %yStart%, %x%, %yEnd%, %redColor%, %tolerance%, Fast RGB
-    PixelSearch, , barraBottom, %yEnd%, %x%, %yStart%, %redColor%, %tolerance%, Fast RGB
+        ; Detecta a area da barra
+        PixelSearch, , barraTop, %x%, %yStart%, %x%, %yEnd%, %redColor%, %tolerance%, Fast RGB
+        PixelSearch, , barraBottom, %x%, %yEnd%, %x%, %yStart%, %redColor%, %tolerance%, Fast RGB
 
-    ; Detecta a linha preta
-    PixelSearch, , linhaY, %x%, %startY%, %x%, %endY%, %blackColor%, %tolerance%, Fast RGB
+        ; Detecta a linha preta
+        PixelSearch, , linhaY, %x%, %yStart%, %x%, %yEnd%, %blackColor%, %tolerance%, Fast RGB
+        return
     }
 
+    ; Função de clique
 
-; Função de clique
-
-ClickMultiple(qtd, delay)
-{
-    Loop, %qtd%
+    ClickMultiple(qtd, delay)
     {
-        Click
-        Sleep, %delay%
+        Loop, %qtd%
+        {
+            Click
+            Sleep, %delay%
+            now := A_TickCount
+            ultimoClique := now
+        }
+        return
     }
-}
 
-    ;logica click
+;logica click
 
 clique:
     {
+        if (barraDetectada){
+            ; Em baixo da area verde
+            if (linhaY > greenBottom)
+            {
+                ClickMultiple(2, 10)
+            }
 
-    ; Em baixo da area verde
-    if (linhaY > greenBottom)
-        {
-            ClickMultiple(2, 10)
+            ; Em cima da area verde
+            else if (linhaY < greenTop)
+            {
+                return
+            }
+
+            ; Dentro da area verde
+            metadeVerde := greenTop + ((greenBottom - greenTop) // 2)
+            if (linhaY >= metadeVerde && linhaY <= greenBottom)
+            {
+                ; Só clica se estiver na metade de baixo da área verde
+                ClickMultiple(1, 450)
+            }
+            return
         }
 
-    ; Em cima da area verde
-    else if (linhaY < greenTop)
-        {
-            ;do nothing
-        }
-
-    ; Dentro da area verde
-    else if (linhaY <= greenTop && linhaY >= greenBottom)
-        {
-            ClickMultiple(1, 500)
-        }
-    return
     }
 
-
-; Função LocalizacaoSearcher
+; Função de atualização das informações de localização
 
 LocalizacaoSearcher:
     {
         if (greenTop != "")
         {
             localizacao := "Zona Verde: " greenTop " a " greenBottom
-            localizacao .= "nBarrinha Total: " barraTop " a " barraBottom
-            localizacao .= "nLinha Preta em Y: " linhaY
+            localizacao .= "`nBarrinha Total: " barraTop " a " barraBottom
+            localizacao .= "`nLinha Preta em Y: " linhaY
         }
         else
         {
             localizacao := "Localizacao desconhecida"
         }
+        return
     }
 
+; Função para resetar o minigame apos pesca
+DetectaFimMinigame:
+    if (barraDetectadaAnterior && !barraDetectada) {
+        pescados++
+        now := A_TickCount
+        if (now - ultimoClique > 1000) {
+            Sleep, 500
+            Click
+        }
+    }
+    barraDetectadaAnterior := barraDetectada
+return
 
-; Função StatusDePesca
+; Função atualização do status do minigame
 
 StatusDePesca:
     {
-        if (greenTop != "")
-        {
-            status := "Aguardando Minigame..."
-        }
-        else
+        if (barraDetectada)
         {
             status := "Pescando..."
         }
+        else
+        {
+            status := "Aguardando minigame..."
+        }
+        return
     }
